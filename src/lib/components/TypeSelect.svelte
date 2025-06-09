@@ -1,8 +1,13 @@
+<script lang="ts">
+    
+    let { name, labelText, labelClass } = $props();
+</script>
+
 <div>
-    <label for="type" class="block text-sm font-medium text-gray-300">Type 1</label>
+    <label for={name} class={labelClass}>{labelText}</label>
     <select
-        id="type"
-        name="type"
+        id={name}
+        name={name}
         class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-200 shadow-sm focus:border-indigo-400 focus:ring-indigo-400"
     >
         <option value="">Select a type</option>
