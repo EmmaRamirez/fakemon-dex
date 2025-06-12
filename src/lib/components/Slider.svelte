@@ -1,5 +1,8 @@
 <script lang="ts">
-        let { name, labelText, labelClass, value = $bindable(500) } = $props();
+    import { Spring } from 'svelte/motion';
+
+    const value = new Spring(100);
+    let { name, labelText, unitValue, labelClass, min = 0, max = 1000, step = 1 } = $props();
 </script>
 
 <div>
@@ -8,13 +11,13 @@
         type="range"
         id={name}
         name={name}
-        min="0"
-        max="1000"
-        step="1"
+        min={min}
+        max={max}
+        step={step}
         class="mt-1 block w-full"
-        bind:value
+        bind:value={value.target}
     />
     <div class="mt-1 text-sm text-gray-400">
-        <span id="heightValue">{value}</span> cm
+        <span id="heightValue">{value.current.toFixed(0)}</span> {unitValue}
     </div>
 </div>
