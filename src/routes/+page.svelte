@@ -1,13 +1,17 @@
 <script lang="ts">
-	import TypeSelect from "$lib/components/TypeSelect.svelte";
-	import HabitatSelect from "$lib/components/HabitatSelect.svelte";
-	import BestStats from "$lib/components/BestStats.svelte";
-	import Slider from "$lib/components/Slider.svelte";
-	import { enhance } from "$app/forms";
+	import type { PageProps } from './$types';
+	import TypeSelect from '$lib/components/TypeSelect.svelte';
+	import HabitatSelect from '$lib/components/HabitatSelect.svelte';
+	import BestStats from '$lib/components/BestStats.svelte';
+	import Slider from '$lib/components/Slider.svelte';
+	import { enhance } from '$app/forms';
+	import TextInput from '$lib/components/TextInput.svelte';
+	import { Dice6, LoaderCircle } from 'lucide-svelte';
 
-	let { data } = $props();
+	let { data, form }: PageProps = $props();
 
 	let fakemon = data.entries;
+	let loading = $state(false);
 </script>
 
 <svelte:head>
@@ -15,46 +19,88 @@
 	<meta name="description" content="A Fakemon Generator" />
 </svelte:head>
 
-<section class="flex flex-col justify-center items-center flex-[0.6] p-4">
+<section class="flex flex-[0.6] flex-col items-center justify-center p-4">
 	<div class="grid w-full grid-cols-2 gap-4">
 		<div class="rounded-lg bg-gray-800 p-4">
-			<form class="space-y-4" action="?/generate" method="post" use:enhance={() => {
-				return ({ update }) => {
-					update({ reset: false });
-				};
-			}}>
-				<div>
-					<label for="name" class="block text-sm font-medium text-gray-300">Name</label>
-					<input
-						type="text"
-						id="name"
-						name="name"
-						class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-200 shadow-sm focus:border-indigo-400 focus:ring-indigo-400"
-						placeholder="Enter Fakemon name"
+			<form
+				class="space-y-4"
+				action="?/generate"
+				method="post"
+				use:enhance={() => {
+					loading = true;
+					return ({ update }) => {
+						update({ reset: false });
+						loading = false;
+					};
+				}}
+			>
+				<TextInput name="name" label="Name" placeholder="Enter Fakemon name" />
+
+				<div class="flex gap-2">
+					<TypeSelect
+						name="type1"
+						labelText="Type 1"
+						labelClass="block text-sm font-medium text-gray-300"
+					/>
+
+					<TypeSelect
+						name="type2"
+						labelText="Type 2"
+						labelClass="block text-sm font-medium text-gray-300"
 					/>
 				</div>
 
-				<div class="flex gap-2">
-					<TypeSelect name="type1" labelText="Type 1" labelClass="block text-sm font-medium text-gray-300" />
+				<HabitatSelect
+					name="habitat"
+					labelText="Habitat"
+					labelClass="block text-sm font-medium text-gray-300"
+				/>
 
-					<TypeSelect name="type2" labelText="Type 2" labelClass="block text-sm font-medium text-gray-300" />
+				<BestStats
+					name="bestStats"
+					labelText="Best Stats"
+					labelClass="block text-sm font-medium text-gray-300"
+				/>
+
+				<Slider
+					name="height"
+					labelText="Height"
+					labelClass="block text-sm font-medium text-gray-300"
+				/>
+				<Slider
+					name="weight"
+					labelText="Weight"
+					labelClass="block text-sm font-medium text-gray-300"
+				/>
+
+				<div class="button-group flex w-full gap-2">
+					<button
+						class="flex max-w-16 items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:outline-none cursor-pointer"
+					>
+						<Dice6 />
+					</button>
+					<button
+						type="submit"
+						class="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:outline-none cursor-pointer"
+					>
+						{#if loading}
+							<LoaderCircle class="animate-spin" />
+						{/if}
+						Generate Fakemon
+					</button>
 				</div>
-
-				<HabitatSelect name="habitat" labelText="Habitat" labelClass="block text-sm font-medium text-gray-300" />
-
-				<BestStats name="bestStats" labelText="Best Stats" labelClass="block text-sm font-medium text-gray-300" />
-
-				<Slider name="height" labelText="Height" labelClass="block text-sm font-medium text-gray-300" />
-				<Slider name="weight" labelText="Weight" labelClass="block text-sm font-medium text-gray-300" />
-				<button
-					type="submit"
-					class="mt-4 w-full rounded-md bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:outline-none"
-				>
-					Generate Fakemon
-				</button>
 			</form>
 		</div>
-		<div class="rounded-lg bg-gray-800 p-4">
+		<div class="rounded-lg bg-gray-800 p-4 flex flex-col gap-2">
+			<div class="mt-4 flex flex-col gap-2 rounded-lg bg-gray-700 p-4">
+				{#if form?.dexEntry}
+					<p class="text-sm text-gray-500">{form.dexEntry}</p>
+				{/if}
+
+				{#if form?.fakemonImage}
+					<img src={form?.fakemonImage} alt="Fakemon" />
+				{/if}
+			</div>
 			<div class="grid grid-cols-4 gap-4">
 				{#each fakemon as fakes}
 					<div
