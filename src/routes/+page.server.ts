@@ -2,6 +2,7 @@ import type { Actions } from '@sveltejs/kit';
 import { MongoClient, ServerApiVersion, type MongoClientOptions } from 'mongodb';
 import OpenAI from "openai";
 import type { ImageGenerateParams } from 'openai/resources/images.mjs';
+import B2 from 'backblaze-b2';
 
 const ai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY });
 
@@ -44,6 +45,11 @@ const client = new MongoClient(uri, {
     }
 } as MongoClientOptions);
 
+const b2 = new B2({
+    applicationKeyId: import.meta.env.VITE_BB_KEY_ID,
+    applicationKey: import.meta.env.VITE_BB_KEY,
+})
+
 const serializeNonPOJOs = (obj: object) => {
     return structuredClone(obj);
 }
@@ -55,6 +61,7 @@ const generatePrompt = (data: FormData) => {
     Return the data in JSON that can be parsed via JSON.parse(). Return the data in the following JSON format:
     {
         "species": "string",
+        "name": "string",
         "type1": "string",
         "type2": "string",
         "habitat": "string",
@@ -88,10 +95,11 @@ export const actions = {
 
         let error = null;
         const sanitizedDexJson = dexJson.output_text.replace(/```json/g, '').replace(/```/g, '');
+        const parsedDexData = JSON.parse(sanitizedDexJson) as DexEntry;
 
         try {
             await client.connect();
-            const entry = await client.db("fakemon-dex").collection("entries").insertOne(JSON.parse(sanitizedDexJson) as DexEntry);
+            const entry = await client.db("fakemon-dex").collection("entries").insertOne(parsedDexData);
 
             console.log(entry);
         } catch (err) {
@@ -115,9 +123,30 @@ export const actions = {
 
         const fakemonImage = response?.data?.[0]?.url;
 
+        try {
+            if (fakemonImage) {
+                const authKey = await b2.authorize();
+                console.log(authKey);
+                const bucket = await b2.getBucket({ bucketName: import.meta.env.VITE_BB_BUCKET });
+                console.log(bucket);
+                console.log(fakemonImage, parsedDexData.species);
+                const file = await bucket.uploadFile({
+                    uploadUrl: fakemonImage,
+                    uploadAuthToken: authKey,
+                    filename: `${parsedDexData.species}.png`,
+                    onUploadProgress: (progress) => {
+                        console.log(progress);
+                    }
+                });
+                console.log(file);
+            }
+        } catch (err) {
+            error = err;
+            console.error(err);
+        }
+
         return {
-            error: error,
-            dexEntry: JSON.parse(sanitizedDexJson),
+            dexEntry: serializeNonPOJOs(parsedDexData),
             fakemonImage: fakemonImage
         }
     }
